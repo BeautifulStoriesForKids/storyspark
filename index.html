@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StorySpark – AI Children's Book Creator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; background: linear-gradient(135deg,#FFF8E7,#FDEBD0); font-family: Georgia, serif; padding: 24px 16px; }
+  h1 { font-size: 2.2rem; color: #3D1C02; text-align: center; }
+  h1 span { color: #E07B39; }
+  .subtitle { color: #7A4E2D; font-style: italic; text-align: center; margin: 6px 0 28px; font-size: 0.95rem; }
+  .card { background: white; border-radius: 20px; padding: 24px; max-width: 680px; margin: 0 auto 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  label { display: block; font-size: 0.72rem; font-weight: bold; color: #7A4E2D; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-family: Arial, sans-serif; }
+  input, select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 2px solid #F0DEC8; font-size: 1rem; color: #3D1C02; background: #FFFAF4; outline: none; font-family: Georgia, serif; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  button.primary { width: 100%; padding: 14px; background: linear-gradient(135deg,#E07B39,#C85D1E); color: white; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: bold; cursor: pointer; font-family: Georgia, serif; box-shadow: 0 4px 14px rgba(224,123,57,0.4); }
+  button.primary:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+  .error { background: #FFF0ED; border: 2px solid #FFB8A8; border-radius: 10px; padding: 12px 16px; color: #C0392B; font-size: 0.85rem; margin-bottom: 14px; font-family: Arial, sans-serif; display: none; word-break: break-word; }
+  .info { background: #EFF8FF; border: 2px solid #BEE3F8; border-radius: 10px; padding: 12px 16px; color: #2B6CB0; font-size: 0.85rem; margin-bottom: 16px; font-family: Arial, sans-serif; }
+  .info a { color: #2B6CB0; }
+  .warning { background: #FFF8E1; border: 2px solid #F6D365; color: #7A4E2D; }
+  .cover { background: linear-gradient(135deg,#E07B39,#C85D1E); border-radius: 20px; padding: 40px 28px; margin-bottom: 14px; text-align: center; color: white; box-shadow: 0 8px 28px rgba(224,123,57,0.35); max-width: 680px; margin: 0 auto 14px; }
+  .cover-title { font-size: 1.8rem; font-weight: bold; line-height: 1.2; margin-bottom: 8px; }
+  .cover-tagline { font-style: italic; opacity: 0.85; }
+  .cover-meta { margin-top: 12px; font-size: 0.78rem; opacity: 0.7; font-family: Arial, sans-serif; }
+  .page-card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 12px; box-shadow: 0 3px 16px rgba(0,0,0,0.07); position: relative; max-width: 680px; margin: 0 auto 12px; }
+  .page-num { position: absolute; top: 14px; right: 18px; font-size: 0.72rem; color: #C0A080; font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+  .page-art { width: 100%; height: 160px; border-radius: 12px; background: linear-gradient(135deg,#FFF3E0,#FFE0B2); display: flex; align-items: center; justify-content: center; font-size: 5rem; margin-bottom: 16px; }
+  .page-text { font-size: 1.15rem; line-height: 1.8; color: #3D1C02; text-align: center; font-style: italic; margin-bottom: 10px; }
+  .page-note { font-size: 0.82rem; color: #A0784A; text-align: center; font-family: Arial, sans-serif; }
+  .actions { display: flex; gap: 10px; max-width: 680px; margin: 4px auto 32px; }
+  .btn-outline { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid #E07B39; background: white; color: #E07B39; font-size: 0.9rem; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; }
+  #book { display: none; }
+  #loading { display: none; text-align: center; padding: 32px; color: #7A4E2D; font-size: 1.1rem; max-width: 680px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; gap: 0; }
+    .card { padding: 20px; }
+    h1 { font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>✨ Story<span>Spark</span></h1>
+<p class="subtitle">AI children's book creator</p>
+
+<div class="card">
+  <div class="info">
+    🔑 You need a free OpenRouter API key. Get one from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
+  </div>
+  <div class="info warning">
+    ⚠️ Demo mode: this single-file app calls OpenRouter directly from the browser. Do not publish this with your private API key hardcoded. For a public app, move the API call to a backend.
+  </div>
+  <label>Your OpenRouter API Key</label>
+  <input id="apiKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+</div>
+
+<div class="card">
+  <label>Main Character Name</label>
+  <input id="hero" type="text" placeholder="e.g. Luna the little fox, Captain Benny..." />
+
+  <div class="grid">
+    <div>
+      <label>Theme</label>
+      <select id="theme">
+        <option>Friendship & Kindness</option>
+        <option>Bravery & Courage</option>
+        <option>Curiosity & Learning</option>
+        <option>Sharing & Caring</option>
+        <option>Nature & Animals</option>
+        <option>Imagination & Dreams</option>
+        <option>Family & Love</option>
+        <option>Overcoming Fears</option>
+      </select>
+    </div>
+    <div>
+      <label>Age Group</label>
+      <select id="age">
+        <option>2–4 years (Toddler)</option>
+        <option selected>4–6 years (Pre-K)</option>
+        <option>6–8 years (Early Reader)</option>
+        <option>8–10 years (Middle Grade)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <label>Number of Pages</label>
+      <select id="pageCount">
+        <option value="6">6 pages</option>
+        <option value="8" selected>8 pages</option>
+        <option value="10">10 pages</option>
+        <option value="12">12 pages</option>
+      </select>
+    </div>
+    <div>
+      <label>Special Notes (optional)</label>
+      <input id="extra" type="text" placeholder="e.g. set in space, has a dog..." />
+    </div>
+  </div>
+
+  <pre id="debug" style="display:none;background:#1a1a2e;color:#00ff88;padding:14px;border-radius:10px;font-size:0.75rem;overflow-x:auto;white-space:pre-wrap;margin-bottom:14px;max-height:200px;overflow-y:auto"></pre>
+  <div class="error" id="error"></div>
+  <button class="primary" id="genBtn" onclick="generate()">✨ Generate My Book</button>
+</div>
+
+<div id="loading">📖 Writing your story, one page at a time...</div>
+
+<div id="book">
+  <div class="cover" id="cover"></div>
+  <div id="bookPages"></div>
+  <div class="actions">
+    <button class="btn-outline" onclick="copyStory()">📋 Copy Story</button>
+    <button class="btn-outline" onclick="generate()">🔄 New Version</button>
+  </div>
+</div>
+
+<script>
+let currentBook = null;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('error').style.display = 'none';
+}
+
+function buildPrompt({ hero, theme, age, pages, extra }) {
+  return `Create a complete children's book with exactly ${pages} pages.
+
+Main character: ${hero}
+Theme: ${theme}
+Age group: ${age}
+Extra notes: ${extra || "none"}
+
+Return ONLY valid JSON. No markdown. No backticks. No extra text.
+
+Schema:
+{
+  "title": "Book title",
+  "tagline": "Short tagline",
+  "pages": [
+    {
+      "text": "1-3 age-appropriate sentences",
+      "emoji": "one emoji",
+      "illustrationNote": "What to draw"
+    }
+  ]
+}
+
+Rules:
+- Exactly ${pages} page objects.
+- Warm, simple, and age-appropriate.
+- Clear beginning, middle, and ending.
+- End with a kind emotional resolution.`;
+}
+
+async function generate() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const hero = document.getElementById('hero').value.trim();
+
+  if (!apiKey) {
+    showError('Please enter your OpenRouter API key above.');
+    return;
+  }
+  if (!hero) {
+    showError('Please enter a character name.');
+    return;
+  }
+
+  hideError();
+
+  const theme = document.getElementById('theme').value;
+  const age = document.getElementById('age').value;
+  const pages = document.getElementById('pageCount').value;
+  const extra = document.getElementById('extra').value.trim();
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = '✍️ Writing your story...';
+  document.getElementById('book').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+
+  const prompt = buildPrompt({ hero, theme, age, pages, extra });
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'StorySpark'
+      },
+      body: JSON.stringify({
+        model: 'openrouter/free',
+        temperature: 0.8,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a children’s book author. You always return only valid JSON matching the requested schema.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const message = data?.error?.message || JSON.stringify(data).slice(0, 300);
+      throw new Error(`OpenRouter API ${res.status}: ${message}`);
+    }
+
+    const raw = data.choices?.[0]?.message?.content || '';
+    document.getElementById('debug').textContent = 'RAW RESPONSE:\n' + raw;
+
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new Error('No JSON found in the model response. Try generating again.');
+    }
+
+    const parsed = JSON.parse(match[0]);
+
+    if (!parsed.title || !Array.isArray(parsed.pages)) {
+      throw new Error('The model returned JSON, but it did not match the expected book format.');
+    }
+
+    currentBook = { ...parsed, hero, theme, age };
+    renderBook(currentBook);
+
+  } catch (e) {
+    showError(e.message || 'Something went wrong.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Generate My Book';
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function renderBook(book) {
+  document.getElementById('cover').innerHTML = `
+    <div style="font-size:4rem;margin-bottom:12px">📚</div>
+    <div class="cover-title">${escapeHtml(book.title)}</div>
+    <div class="cover-tagline">${escapeHtml(book.tagline || '')}</div>
+    <div class="cover-meta">${escapeHtml(book.age)} · ${escapeHtml(book.theme)}</div>`;
+
+  document.getElementById('bookPages').innerHTML = (book.pages || []).map((p, i) => `
+    <div class="page-card">
+      <span class="page-num">Page ${i + 1}</span>
+      <div class="page-art">${escapeHtml(p.emoji || '🌟')}</div>
+      <p class="page-text">${escapeHtml(p.text || '')}</p>
+      <p class="page-note">🎨 ${escapeHtml(p.illustrationNote || '')}</p>
+    </div>`).join('');
+
+  document.getElementById('book').style.display = 'block';
+  document.getElementById('book').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyStory() {
+  if (!currentBook) return;
+
+  const lines = [
+    `📚 ${currentBook.title}`,
+    `"${currentBook.tagline || ''}"`,
+    '',
+    ...(currentBook.pages || []).map((p, i) =>
+      `Page ${i + 1}:\n${p.text || ''}\n[Art: ${p.illustrationNote || ''}]`
+    )
+  ];
+
+  navigator.clipboard.writeText(lines.join('\n\n')).then(() => {
+    alert('Copied!');
+  });
+}
+</script>
+</body>
+</html>
